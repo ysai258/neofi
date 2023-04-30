@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&display=swap');
+body{
+  background-color: #040406;
+}
+
+* {
+  font-family: 'Poppins', sans-serif !important;
+  color: white
+}
+
+.MuiInputAdornment-root.MuiInputAdornment-positionEnd{
+  color: white
+}
+
+.MuiInputAdornment-root.MuiInputAdornment-positionEnd p{
+  color: white
+}
+
+.MuiOutlinedInput-notchedOutline{
+  border: 3px solid rgba(110, 86, 248, 0.25) !important
+}
