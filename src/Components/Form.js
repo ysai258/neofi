@@ -14,10 +14,12 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import CenteredLogo from "../Assets/centeredlogo.png";
 import symbolsData from "../symbolsData.json";
 
-let ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
+const WEBSOCKET_ENDPOINT = 'wss://stream.binance.com:9443/ws';
+const API_ENDPOINT ='https://api.binance.com/api/v1';
+
+let ws = new WebSocket(`${WEBSOCKET_ENDPOINT}/btcusdt@trade`);
 
 const Form = () => {
   const [open, setOpen] = useState(false);
@@ -41,7 +43,7 @@ const Form = () => {
       tokenData.current = null;
       setPrice(undefined);
       ws = new WebSocket(
-        `wss://stream.binance.com:9443/ws/${symbol}usdt@trade`
+        `${WEBSOCKET_ENDPOINT}/${symbol}usdt@trade`
       );
       ws.onmessage = (ev) => {
         const data = JSON.parse(ev.data);
@@ -51,7 +53,7 @@ const Form = () => {
   }, [token]);
 
   useEffect(() => {
-    fetch("https://api.binance.com/api/v1/exchangeInfo")
+    fetch(`${API_ENDPOINT}/exchangeInfo`)
       .then((res) => res.json())
       .then((data) => {
         const allData = data?.symbols?.filter(
@@ -116,7 +118,7 @@ const Form = () => {
               gutterBottom
               sx={{ color: "#627EEA", fontWeight: "500" }}
             >
-              {price ? `₹ ${price}` : "fetching"}
+              ₹ {price ? `${price}` : "0"}
             </Typography>
           </Stack>
           <Button
@@ -161,7 +163,7 @@ const Form = () => {
           </Box>
           <Box>
             <Typography variant="subtitle2" sx={{ lineHeight: 3 }}>
-              Estimate Number of ETH You will Get
+              {`Estimate Number of ${token?.symbol} You will Get`}
             </Typography>
             <Box
               sx={{
@@ -177,7 +179,7 @@ const Form = () => {
               }}
             >
               <Typography variant="subtitle2" sx={{ color: "#6F6F7E" }}>
-                {amount && price ? amount / price : "0.00"}
+                {amount && price ? (amount / price).toPrecision(10) : "0.00"}
               </Typography>
             </Box>
           </Box>
@@ -210,7 +212,7 @@ const Form = () => {
           >
             <img
               src={token?.logo}
-              alt="Centered logo"
+              alt={token?.name}
               style={{ width: "100%", height: "100%" }}
             />
           </Box>
@@ -285,7 +287,20 @@ const Form = () => {
                       setOpen(false);
                     }}
                   >
-                    <Typography variant="subtitle2">{search?.name}</Typography>
+                    <Typography
+                      variant="subtitle2"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <img
+                        src={search?.logo}
+                        alt={search?.name}
+                        style={{ width: 30, height: 30, padding: "0px 10px" }}
+                      />
+                      {search?.name}
+                    </Typography>
                     {token?.name == search?.name && (
                       <CheckIcon sx={{ fill: "#58ADAB" }} />
                     )}

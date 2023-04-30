@@ -34,3 +34,6 @@ body{
   border-radius: 50px;
   background:rgba(110, 86, 248, 0.25)
 }
+.MuiPaper-root.MuiMenu-paper.MuiPaper-elevation.MuiPaper-rounded{
+  background-color:#181627;
+}
