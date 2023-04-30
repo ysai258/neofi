@@ -15,60 +15,71 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import CenteredLogo from "../Assets/centeredlogo.png";
-const searches = ["Ethereum", "Bitcoin", "Matic", "Binance", "XRP", "Solana"];
-const ws = new WebSocket('wss://stream.binance.com:9443/ws');
-//a16d9bd3-ac71-44df-8d92-27d4850b4fa7
+import symbolsData from "../symbolsData.json";
+
+let ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
+
 const Form = () => {
   const [open, setOpen] = useState(false);
-  const [selectedSearch, setSelectedSearch] = useState("Etherium");
-  const [price,setPrice] = useState(0);
-  const [amount,setAmount] = useState(undefined);
-  const [symbols,setSymbols]=useState([]);
- 
-const msg = {
-  method: "SUBSCRIBE",
-  params:[
-    "ethusdt@trade",
-  ],
-  id: 1,
-  }
+  const [price, setPrice] = useState();
+  const [amount, setAmount] = useState(undefined);
+  const [token, setToken] = useState(symbolsData["BTC"]);
+  const [data, setData] = useState([]);
+  const [searches, setSearches] = useState([]);
 
-ws.onopen = () => {
-  ws.send(JSON.stringify(msg));
-};
+  const tokenData = useRef(null);
 
-const tokenData = useRef(null);
-ws.onmessage = (ev)=>{
-  const data = JSON.parse(ev.data)
-  tokenData.current=data
-}
+  ws.onmessage = (ev) => {
+    const data = JSON.parse(ev.data);
+    tokenData.current = data;
+  };
 
-useEffect(()=>{
-  fetch('https://api.binance.com/api/v1/exchangeInfo')
-.then(res=>res.json())
-.then(data => {
-  const allData = data?.symbols?.filter((val)=>val?.quoteAsset=="USDT");
-  const dataSymbols = allData?.map((val)=>val?.baseAsset)
-  fetch(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol=${dataSymbols?.slice(0,3)?.join(",")}&aux=logo&skip_invalid=true`,{
-    headers:{"X-CMC_PRO_API_KEY":"a16d9bd3-ac71-44df-8d92-27d4850b4fa7"}
-  })  
-  setSymbols(dataSymbols)
-})
-.catch(error => console.error(error));
-
-  let interval = setInterval(()=>{
-    if(tokenData?.current){
-      const data=tokenData?.current;
-      const price = data["p"];
-      if(price)
-        setPrice((price * 80).toFixed(2))
+  useEffect(() => {
+    const symbol = token?.symbol?.toLowerCase();
+    if (ws.readyState == ws.OPEN) {
+      ws.close();
+      tokenData.current = null;
+      setPrice(undefined);
+      ws = new WebSocket(
+        `wss://stream.binance.com:9443/ws/${symbol}usdt@trade`
+      );
+      ws.onmessage = (ev) => {
+        const data = JSON.parse(ev.data);
+        tokenData.current = data;
+      };
     }
-  },1000)
+  }, [token]);
 
-return ()=>clearInterval(interval);
-},[])
+  useEffect(() => {
+    fetch("https://api.binance.com/api/v1/exchangeInfo")
+      .then((res) => res.json())
+      .then((data) => {
+        const allData = data?.symbols?.filter(
+          (val) => val?.quoteAsset == "USDT"
+        );
+        const dataSymbols = allData?.map((val) => val?.baseAsset);
+        const tempData = [];
+        dataSymbols.map((val) => {
+          if (symbolsData[val]) tempData.push(symbolsData[val]);
+        });
+        setToken(tempData[0]);
+        setSearches(tempData);
+        setData(tempData);
+      })
+      .catch((error) => console.error(error));
+  }, []);
 
+  useEffect(() => {
+    let interval = setInterval(() => {
+      if (tokenData?.current) {
+        const data = tokenData?.current;
+        const price = data["p"];
+        if (price) setPrice((price * 80).toFixed(2));
+      }
+    }, 1000);
 
+    return () => clearInterval(interval);
+  }, [token]);
 
   return (
     <>
@@ -105,7 +116,7 @@ return ()=>clearInterval(interval);
               gutterBottom
               sx={{ color: "#627EEA", fontWeight: "500" }}
             >
-              ₹ {price}
+              {price ? `₹ ${price}` : "fetching"}
             </Typography>
           </Stack>
           <Button
@@ -123,7 +134,7 @@ return ()=>clearInterval(interval);
             }}
             onClick={() => setOpen(true)}
           >
-            <Typography variant="subtitle2">{selectedSearch}</Typography>
+            <Typography variant="subtitle2">{token?.name}</Typography>
             <ArrowDropDownIcon />
           </Button>
           <Box>
@@ -140,13 +151,12 @@ return ()=>clearInterval(interval);
                 outline: "none",
               }}
               value={amount}
-              onChange={(e)=>{
-                ws.close()
+              onChange={(e) => {
                 const enterValue = e.target.value
-                ? parseInt(e.target.value)
-                : 0;
-                  setAmount(enterValue)
-              } }
+                  ? parseInt(e.target.value)
+                  : 0;
+                setAmount(enterValue);
+              }}
             />
           </Box>
           <Box>
@@ -167,7 +177,7 @@ return ()=>clearInterval(interval);
               }}
             >
               <Typography variant="subtitle2" sx={{ color: "#6F6F7E" }}>
-                {amount && price ? (amount/price) : '0.00'}
+                {amount && price ? amount / price : "0.00"}
               </Typography>
             </Box>
           </Box>
@@ -199,7 +209,7 @@ return ()=>clearInterval(interval);
             className="double-border"
           >
             <img
-              src={"https://assets.binance.com/assets/img/coins/128x128/eth.png"}
+              src={token?.logo}
               alt="Centered logo"
               style={{ width: "100%", height: "100%" }}
             />
@@ -240,33 +250,49 @@ return ()=>clearInterval(interval);
                 borderRadius: "30px",
                 marginBottom: "10px",
               }}
+              onChange={(e) => {
+                setSearches(
+                  data.filter((val) => {
+                    const name = val?.name?.toLowerCase();
+                    const enterValue = e.target.value.toLowerCase();
+                    return name.includes(enterValue);
+                  })
+                );
+              }}
             />
-            {searches.map((search) => {
-              return (
-                <Button
-                  sx={{
-                    color: "white",
-                    width: "100%",
-                    padding: "14px 20px",
-                    outline: "none",
-                    borderRadius: "5px",
-                    display: "flex",
-                    alignItems: "center",
-                    overflow: "hidden",
-                    justifyContent: "space-between",
-                  }}
-                  onClick={() => {
-                    setSelectedSearch(search);
-                    setOpen(false);
-                  }}
-                >
-                  <Typography variant="subtitle2">{search}</Typography>
-                  {selectedSearch == search && (
-                    <CheckIcon sx={{ fill: "#58ADAB" }} />
-                  )}
-                </Button>
-              );
-            })}
+            <div
+              style={{
+                overflowY: "scroll",
+                maxHeight: "300px",
+              }}
+            >
+              {searches.map((search) => {
+                return (
+                  <Button
+                    sx={{
+                      color: "white",
+                      width: "100%",
+                      padding: "14px 20px",
+                      outline: "none",
+                      borderRadius: "5px",
+                      display: "flex",
+                      alignItems: "center",
+                      overflow: "hidden",
+                      justifyContent: "space-between",
+                    }}
+                    onClick={() => {
+                      setToken(search);
+                      setOpen(false);
+                    }}
+                  >
+                    <Typography variant="subtitle2">{search?.name}</Typography>
+                    {token?.name == search?.name && (
+                      <CheckIcon sx={{ fill: "#58ADAB" }} />
+                    )}
+                  </Button>
+                );
+              })}
+            </div>
           </Stack>
         </Container>
       </Backdrop>

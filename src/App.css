@@ -19,3 +19,18 @@ body{
 .MuiOutlinedInput-notchedOutline{
   border: 3px solid rgba(110, 86, 248, 0.25) !important
 }
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background:   #181627;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  border-radius: 50px;
+  background:rgba(110, 86, 248, 0.25)
+}
